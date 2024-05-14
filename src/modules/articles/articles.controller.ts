@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  NotFoundException,
   Body,
   Controller,
   Get,
@@ -12,8 +13,9 @@ import {
   UseInterceptors,
   ParseFilePipe,
   FileTypeValidator,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ListingPage } from '../../core/page/types';
 import { ArticlesCategoriesService } from './articles-categories.service';
@@ -23,17 +25,21 @@ import { ArticleDto } from './dto/article.dto';
 import { PatchArticleDto } from './dto/patch.article.dto';
 import { AddArticleDto } from './dto/add.article.dto';
 import { ApiFile } from '../../core/swagger/api.file';
+import { AuthGuard } from '@nestjs/passport';
+import { UserRolesGuard } from '../users/roles/roles.guard';
+import { HasRoles } from '../users/roles/roles.decorator';
+import { UserRoleEnum } from '../users/entities/user-group.entity';
 
 @Controller('/articles')
 @ApiTags('Articles')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'), UserRolesGuard)
 export class ArticlesController {
   constructor(
     private readonly articlesService: ArticlesService,
     private readonly categoriesService: ArticlesCategoriesService,
   ) {}
 
-  //@ApiBearerAuth()
-  //@UseGuards(AuthGuard('jwt'))
   @Get('/')
   async getAll(
     @Query() dto: GetAllArticlesDto,
@@ -46,43 +52,46 @@ export class ArticlesController {
     }
 
     const list = await this.articlesService.getAll(dto);
-    return list;
+    return {
+      ...list,
+      items: list.items.map((item) => item.toDto()),
+    };
   }
 
   @Get('/:url')
   async getByUrl(@Param('url') url: string) {
-    let news;
-    if (url && (news = await this.articlesService.findOneByUrl(url))) {
-      return news;
+    let article;
+    if (url && (article = await this.articlesService.findOneByUrl(url))) {
+      return article.toDto();
     }
 
-    throw new BadRequestException('Could not find article by url: ' + url);
+    throw new NotFoundException('Could not find article by url: ' + url);
   }
 
-  //@ApiBearerAuth()
-  //@UseGuards(AuthGuard('jwt'))
   @Post('/')
+  @HasRoles(UserRoleEnum.admin)
   async add(@Body() dto: AddArticleDto) {
     await this.checkCategory(dto.categoryId);
-    return this.articlesService.add(dto);
+    const item = await this.articlesService.add(dto);
+    return item.toDto();
   }
 
-  //@ApiBearerAuth()
-  //@UseGuards(AuthGuard('jwt'))
   @Patch('/:id')
+  @HasRoles(UserRoleEnum.admin)
   async patch(@Param('id') id: number, @Body() dto: PatchArticleDto) {
     if (dto.categoryId) {
       await this.checkCategory(dto.categoryId);
     }
-    let news;
-    if (id > 0 && (news = await this.articlesService.update(id, dto))) {
-      return news;
+    let article;
+    if (id > 0 && (article = await this.articlesService.update(id, dto))) {
+      return article.toDto();
     }
 
-    throw new BadRequestException('Could not find article by id: ' + id);
+    throw new NotFoundException('Could not find article by id: ' + id);
   }
 
   @Post('/:id/image')
+  @HasRoles(UserRoleEnum.admin)
   @UseInterceptors(FileInterceptor('file'))
   @ApiFile()
   @ApiConsumes('multipart/form-data')
@@ -98,27 +107,28 @@ export class ArticlesController {
     if (!file) {
       throw new BadRequestException('Image file is required');
     }
-    let news;
-    if (id > 0 && (news = await this.articlesService.setImage(id, file))) {
-      return news;
+    let article;
+    if (id > 0 && (article = await this.articlesService.setImage(id, file))) {
+      return article.toDto();
     }
 
-    throw new BadRequestException('Could not find article by id: ' + id);
+    throw new NotFoundException('Could not find article by id: ' + id);
   }
 
   @Delete('/:id')
+  @HasRoles(UserRoleEnum.admin)
   async delete(@Param('id') id: number): Promise<any> {
     if (id > 0 && (await this.articlesService.delete(id))) {
       return {};
     }
 
-    throw new BadRequestException('Could not find article by id: ' + id);
+    throw new NotFoundException('Could not find article by id: ' + id);
   }
 
   private async checkCategory(categoryId: number) {
     const category = await this.categoriesService.findOneById(categoryId);
     if (!category) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         'Could not find category by id: ' + categoryId,
       );
     }

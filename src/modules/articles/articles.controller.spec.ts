@@ -3,7 +3,7 @@ import { ArticlesController } from './articles.controller';
 import { ArticlesService } from './articles.service';
 import { ArticlesCategoriesService } from './articles-categories.service';
 
-describe('NewsController', () => {
+describe('ArticlesController', () => {
   let controller: ArticlesController;
 
   beforeEach(async () => {

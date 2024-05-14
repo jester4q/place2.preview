@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CityEntity } from './entities/city.entity';
-import { CityDto } from './dto/city.dto';
 
 type City = {
   name: string;
@@ -14,35 +13,33 @@ export class CitiesService {
     private readonly citiesRepository: typeof CityEntity,
   ) {}
 
-  async getAll(): Promise<CityDto[]> {
-    return (await this.citiesRepository.findAll()).map((item) =>
-      this.entityToDto(item),
-    );
+  async getAll(): Promise<CityEntity[]> {
+    return await this.citiesRepository.findAll();
   }
 
-  async findOneByUrl(url: string): Promise<CityDto> {
+  async findOneByUrl(url: string): Promise<CityEntity> {
     const item = await this.citiesRepository.findOne({
       where: { url },
     });
-    return (item && this.entityToDto(item)) || null;
+    return item;
   }
 
-  async findOneById(id: number): Promise<CityDto> {
+  async findOneById(id: number): Promise<CityEntity> {
     const item = await this.citiesRepository.findOne({
       where: { id },
     });
-    return (item && this.entityToDto(item)) || null;
+    return item;
   }
 
-  async add(city: City): Promise<CityDto> {
+  async add(city: City): Promise<CityEntity> {
     const item = await this.citiesRepository.create({
       name: city.name,
       url: city.url,
     });
-    return this.entityToDto(item);
+    return item;
   }
 
-  async update(id: number, city: Partial<City>): Promise<CityDto | null> {
+  async update(id: number, city: Partial<City>): Promise<CityEntity> {
     const result = await this.citiesRepository.update<CityEntity>(
       {
         name: city.name,
@@ -59,13 +56,5 @@ export class CitiesService {
     }
 
     return null;
-  }
-
-  private entityToDto(city: CityEntity): CityDto {
-    return {
-      id: city.id,
-      name: city.name,
-      url: city.url,
-    };
   }
 }

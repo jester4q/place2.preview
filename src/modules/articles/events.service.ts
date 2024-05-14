@@ -4,8 +4,7 @@ import { ListingPage } from '../../core/page/types';
 import { listingPage } from '../../core/page/listing.page';
 import { FilesService } from '../files/files.service';
 import { EventEntity } from './entities/event.entity';
-import { EventDto } from './dto/event.dto';
-import { dateToStr, strToDate } from 'src/core/utils';
+import { strToDate } from 'src/core/utils';
 
 type Event = {
   title: string;
@@ -28,8 +27,8 @@ export class EventsService {
     private readonly fileService: FilesService,
   ) {}
 
-  async add(event: Event): Promise<EventDto> {
-    const item = await this.eventsRepository.create<EventEntity>({
+  async add(event: Event): Promise<EventEntity> {
+    const item = await this.eventsRepository.create({
       title: event.title,
       url: event.url,
       category_id: event.categoryId,
@@ -41,10 +40,10 @@ export class EventsService {
       start_date: strToDate(event.startDate),
       end_date: strToDate(event.endDate),
     });
-    return this.entityToDto(item);
+    return item;
   }
 
-  async update(id: number, event: Partial<Event>): Promise<EventDto | null> {
+  async update(id: number, event: Partial<Event>): Promise<EventEntity> {
     const patch: Partial<EventEntity> = {
       title: event.title,
       url: event.url,
@@ -66,14 +65,14 @@ export class EventsService {
         id,
       },
     });
-    if (result) {
+    if (result.length && result[0] > 0) {
       return this.findOneById(id);
     }
 
     return null;
   }
 
-  async setImage(id: number, file: Express.Multer.File): Promise<EventDto> {
+  async setImage(id: number, file: Express.Multer.File): Promise<EventEntity> {
     const event = await this.findOneById(id);
     if (!event) {
       return null;
@@ -83,8 +82,8 @@ export class EventsService {
       return null;
     }
 
-    if (event.imageId) {
-      await this.fileService.delete(event.imageId);
+    if (event.image_id) {
+      await this.fileService.delete(event.image_id);
     }
     const result = await this.eventsRepository.update<EventEntity>(
       { image_id: image.id },
@@ -101,21 +100,21 @@ export class EventsService {
     return result > 0;
   }
 
-  async findOneByUrl(url: string): Promise<EventDto> {
+  async findOneByUrl(url: string): Promise<EventEntity> {
     const item = await this.eventsRepository.findOne<EventEntity>({
       where: { url },
     });
-    return (item && this.entityToDto(item)) || null;
+    return item;
   }
 
-  async findOneById(id: number): Promise<EventDto> {
+  async findOneById(id: number): Promise<EventEntity> {
     const item = await this.eventsRepository.findOne<EventEntity>({
       where: { id },
     });
-    return (item && this.entityToDto(item)) || null;
+    return item;
   }
 
-  async getAll(dto: GetAllArticlesDto): Promise<ListingPage<EventDto>> {
+  async getAll(dto: GetAllArticlesDto): Promise<ListingPage<EventEntity>> {
     const list = await this.eventsRepository.findAndCountAll({
       where: {
         ...(dto.categoryId && { category_id: dto.categoryId }),
@@ -125,29 +124,11 @@ export class EventsService {
       limit: dto.perPage,
     });
 
-    return listingPage<EventDto>(
-      list.rows.map((e) => this.entityToDto(e)),
+    return listingPage<EventEntity>(
+      list.rows,
       dto.page,
       list.count,
       dto.perPage,
     );
-  }
-
-  private entityToDto(event: EventEntity): EventDto {
-    console.log(typeof event.end_date, typeof event.start_date);
-    return {
-      id: event.id,
-      title: event.title,
-      url: event.url,
-      sponsor: event.sponsor || '',
-      categoryId: event.category_id,
-      text: event.text || '',
-      imageId: event.image_id || 0,
-      objectId: event.object_id || 0,
-      address: event.address || '',
-      price: event.price || 0,
-      endDate: (event.end_date && dateToStr(event.end_date)) || '',
-      startDate: (event.start_date && dateToStr(event.start_date)) || '',
-    };
   }
 }

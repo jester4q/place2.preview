@@ -7,13 +7,6 @@ import { join } from 'path';
 import { promisify } from 'util';
 const unlinkAsync = promisify(unlink);
 
-type File = {
-  name: string;
-  uid: string;
-  type: string;
-  size?: number;
-};
-
 @Injectable()
 export class FilesService {
   constructor(
@@ -21,21 +14,21 @@ export class FilesService {
     private readonly filesRepository: typeof FileEntity,
   ) {}
 
-  async findOneById(id: number): Promise<FileDto> {
+  async findOneById(id: number): Promise<FileEntity> {
     const item = await this.filesRepository.findOne({
       where: { id },
     });
-    return this.entityToDto(item);
+    return item;
   }
 
-  async add(file: Express.Multer.File): Promise<FileDto> {
+  async add(file: Express.Multer.File): Promise<FileEntity> {
     const item = await this.filesRepository.create({
       name: file.originalname,
       uid: file.filename,
       size: file.size,
       type: file.mimetype,
     });
-    return this.entityToDto(item);
+    return item;
   }
 
   getStream(file: FileDto): StreamableFile {
@@ -53,15 +46,5 @@ export class FilesService {
       await unlinkAsync(join(process.cwd(), 'uploads', file.uid));
     }
     return result > 0;
-  }
-
-  private entityToDto(file: FileEntity): FileDto {
-    return {
-      id: file.id,
-      name: file.name,
-      uid: file.uid,
-      type: file.type,
-      size: file.size,
-    };
   }
 }

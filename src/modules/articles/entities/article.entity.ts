@@ -10,6 +10,7 @@ import {
 } from 'sequelize-typescript';
 import { ArticleCategoryEntity } from './article-category.entity';
 import { FileEntity } from '../../files/entities/file.entity';
+import { ArticleDto } from '../dto/article.dto';
 
 @Table({
   tableName: 'articles' /*charset: 'utf8mb4', collate: 'utf8mb4_general_ci' */,
@@ -60,4 +61,16 @@ export class ArticleEntity extends Model<ArticleEntity> {
 
   @HasOne(() => FileEntity, 'image_id')
   image: FileEntity;
+
+  toDto(): ArticleDto {
+    return {
+      id: this.id,
+      title: this.title,
+      url: this.url,
+      readingTime: this.reading_time || 0,
+      categoryId: this.category_id,
+      text: this.text || '',
+      imageId: this.image_id || 0,
+    };
+  }
 }

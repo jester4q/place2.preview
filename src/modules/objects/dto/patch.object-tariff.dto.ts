@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional, IsNumber } from 'class-validator';
 
 export class PatchObjectTariffDto {
   @ApiPropertyOptional()
@@ -16,4 +16,7 @@ export class PatchObjectTariffDto {
   @IsString()
   @IsOptional()
   readonly price?: number;
+  @ApiPropertyOptional()
+  @IsNumber({}, { each: true })
+  readonly facilitiesIds?: number[];
 }

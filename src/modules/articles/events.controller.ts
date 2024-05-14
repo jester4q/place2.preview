@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  NotFoundException,
   Body,
   Controller,
   Get,
@@ -12,8 +13,9 @@ import {
   UseInterceptors,
   ParseFilePipe,
   FileTypeValidator,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ListingPage } from '../../core/page/types';
 import { ArticlesCategoriesService } from './articles-categories.service';
@@ -23,9 +25,15 @@ import { EventDto } from './dto/event.dto';
 import { AddEventDto } from './dto/add.event.dto';
 import { PatchEventDto } from './dto/patch.event.dto';
 import { ApiFile } from '../../core/swagger/api.file';
+import { AuthGuard } from '@nestjs/passport';
+import { UserRolesGuard } from '../users/roles/roles.guard';
+import { HasRoles } from '../users/roles/roles.decorator';
+import { UserRoleEnum } from '../users/entities/user-group.entity';
 
 @Controller('/events')
 @ApiTags('Events')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'), UserRolesGuard)
 export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
@@ -44,39 +52,43 @@ export class EventsController {
     }
 
     const list = await this.eventsService.getAll(dto);
-    return list;
+    return { ...list, items: list.items.map((item) => item.toDto()) };
   }
 
   @Get('/:url')
   async getByUrl(@Param('url') url: string) {
-    let events;
-    if (url && (events = await this.eventsService.findOneByUrl(url))) {
-      return events;
+    let event;
+    if (url && (event = await this.eventsService.findOneByUrl(url))) {
+      return event.toDto();
     }
 
-    throw new BadRequestException('Could not find event by url: ' + url);
+    throw new NotFoundException('Could not find event by url: ' + url);
   }
 
   @Post('/')
+  @HasRoles(UserRoleEnum.admin)
   async add(@Body() dto: AddEventDto) {
     await this.checkCategory(dto.categoryId);
-    return this.eventsService.add(dto);
+    const item = await this.eventsService.add(dto);
+    return item.toDto();
   }
 
   @Patch('/:id')
+  @HasRoles(UserRoleEnum.admin)
   async patch(@Param('id') id: number, @Body() dto: PatchEventDto) {
     if (dto.categoryId) {
       await this.checkCategory(dto.categoryId);
     }
     let event;
     if (id > 0 && (event = await this.eventsService.update(id, dto))) {
-      return event;
+      return event.toDto();
     }
 
-    throw new BadRequestException('Could not find event by id: ' + id);
+    throw new NotFoundException('Could not find event by id: ' + id);
   }
 
   @Post('/:id/image')
+  @HasRoles(UserRoleEnum.admin)
   @UseInterceptors(FileInterceptor('file'))
   @ApiFile()
   @ApiConsumes('multipart/form-data')
@@ -94,25 +106,26 @@ export class EventsController {
     }
     let event;
     if (id > 0 && (event = await this.eventsService.setImage(id, file))) {
-      return event;
+      return event.toDto();
     }
 
-    throw new BadRequestException('Could not find event by id: ' + id);
+    throw new NotFoundException('Could not find event by id: ' + id);
   }
 
   @Delete('/:id')
+  @HasRoles(UserRoleEnum.admin)
   async delete(@Param('id') id: number): Promise<any> {
     if (id > 0 && (await this.eventsService.delete(id))) {
       return {};
     }
 
-    throw new BadRequestException('Could not find event by id: ' + id);
+    throw new NotFoundException('Could not find event by id: ' + id);
   }
 
   private async checkCategory(categoryId: number) {
     const category = await this.categoriesService.findOneById(categoryId);
     if (!category) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         'Could not find category by id: ' + categoryId,
       );
     }

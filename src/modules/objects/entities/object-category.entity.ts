@@ -41,4 +41,15 @@ export class ObjectCategoryEntity extends Model<ObjectCategoryEntity> {
       url: this.url,
     };
   }
+  /*
+  toDto(): ObjectCategoryDto {
+    return {
+      id: this.id,
+      name: this.name,
+      url: this.url,
+      parentId: this.parent_id,
+      children: [],
+    };
+  }
+  */
 }

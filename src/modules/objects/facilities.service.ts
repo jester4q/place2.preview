@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { FacilityEntity } from './entities/facility.entity';
-import { FacilityDto } from './dto/facility.dto';
 import { Op } from 'sequelize';
 import { ObjectsCategoriesService } from './objects-categories.service';
 
@@ -17,34 +16,32 @@ export class FacilitiesService {
     private readonly categoryService: ObjectsCategoriesService,
   ) {}
 
-  async getAll(categoryId: number): Promise<FacilityDto[]> {
-    return (
-      await this.facilitiesRepository.findAll({
-        where: { category_id: categoryId },
-      })
-    ).map((item) => item.toDto());
+  async getAll(categoryId: number): Promise<FacilityEntity[]> {
+    return this.facilitiesRepository.findAll({
+      where: { category_id: categoryId },
+    });
   }
 
-  async findOneById(id: number): Promise<FacilityDto> {
+  async findOneById(id: number): Promise<FacilityEntity> {
     const item = await this.facilitiesRepository.findOne({
       where: { id },
     });
-    return (item && item.toDto()) || null;
+    return item;
   }
 
-  async add(categoryId: number, facility: Facility): Promise<FacilityDto> {
+  async add(categoryId: number, facility: Facility): Promise<FacilityEntity> {
     const item = await this.facilitiesRepository.create({
       category_id: categoryId,
       name: facility.name,
       icon: facility.icon,
     });
-    return (item && item.toDto()) || null;
+    return item;
   }
 
   async update(
     id: number,
     facility: Partial<Facility>,
-  ): Promise<FacilityDto | null> {
+  ): Promise<FacilityEntity | null> {
     const result = await this.facilitiesRepository.update(
       {
         name: facility.name,
@@ -68,11 +65,11 @@ export class FacilitiesService {
     return result > 0;
   }
 
-  async findForCategory(categoryId): Promise<FacilityDto[]> {
+  async findForCategory(categoryId): Promise<FacilityEntity[]> {
     const path = await this.categoryService.getPath(categoryId);
     const facilities = await this.facilitiesRepository.findAll({
       where: { category_id: { [Op.in]: path } },
     });
-    return facilities.map((item) => item.toDto());
+    return facilities;
   }
 }

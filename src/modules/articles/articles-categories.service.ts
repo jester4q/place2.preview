@@ -1,6 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ArticleCategoryEntity } from './entities/article-category.entity';
-import { ArticleCategoryDto } from './dto/article-category.dto';
 
 type ArticleCategory = {
   name: string;
@@ -14,25 +13,24 @@ export class ArticlesCategoriesService {
     private readonly categoriesRepository: typeof ArticleCategoryEntity,
   ) {}
 
-  async add(category: ArticleCategory): Promise<ArticleCategoryDto> {
-    const item = await this.categoriesRepository.create<ArticleCategoryEntity>({
+  async add(category: ArticleCategory): Promise<ArticleCategoryEntity> {
+    const item = await this.categoriesRepository.create({
       name: category.name,
       url: category.url,
     });
-    return item ? this.entityToDto(item) : null;
+    return item;
   }
 
   async update(
     id: number,
     category: Partial<ArticleCategory>,
-  ): Promise<ArticleCategoryDto | null> {
-    const result =
-      await this.categoriesRepository.update<ArticleCategoryEntity>(
-        { name: category.name, url: category.url },
-        {
-          where: { id },
-        },
-      );
+  ): Promise<ArticleCategoryEntity> {
+    const result = await this.categoriesRepository.update(
+      { name: category.name, url: category.url },
+      {
+        where: { id },
+      },
+    );
     if (result.length && result[0] > 0) {
       return this.findOneById(id);
     }
@@ -40,30 +38,26 @@ export class ArticlesCategoriesService {
     return null;
   }
 
-  async findOneByUrl(url: string): Promise<ArticleCategoryDto | null> {
+  async findOneByUrl(url: string): Promise<ArticleCategoryEntity> {
     if (!url) {
       return null;
     }
-    const item = await this.categoriesRepository.findOne<ArticleCategoryEntity>(
-      {
-        where: { url },
-      },
-    );
+    const item = await this.categoriesRepository.findOne({
+      where: { url },
+    });
 
-    return item ? this.entityToDto(item) : null;
+    return item;
   }
 
-  async findOneById(id: number): Promise<ArticleCategoryDto | null> {
+  async findOneById(id: number): Promise<ArticleCategoryEntity> {
     if (!id) {
       return null;
     }
-    const item = await this.categoriesRepository.findOne<ArticleCategoryEntity>(
-      {
-        where: { id },
-      },
-    );
+    const item = await this.categoriesRepository.findOne({
+      where: { id },
+    });
 
-    return item ? this.entityToDto(item) : null;
+    return item;
   }
 
   async delete(id: number): Promise<boolean> {
@@ -73,20 +67,12 @@ export class ArticlesCategoriesService {
     return result > 0;
   }
 
-  async getAll(): Promise<ArticleCategoryDto[]> {
+  async getAll(): Promise<ArticleCategoryEntity[]> {
     const list = await this.categoriesRepository.findAll({
       attributes: { exclude: ['createdAt', 'updatedAt'] },
       order: [['name', 'ASC']],
     });
 
-    return list.map((e) => this.entityToDto(e));
-  }
-
-  private entityToDto(category: ArticleCategoryEntity): ArticleCategoryDto {
-    return {
-      id: category.id,
-      name: category.name,
-      url: category.url,
-    };
+    return list;
   }
 }

@@ -3,6 +3,7 @@ import { ObjectCategoryEntity } from './entities/object-category.entity';
 import { ObjectFacilityEntity } from './entities/object-facility.entity';
 import { ObjectImageEntity } from './entities/object-image.entity';
 import { ObjectReviewEntity } from './entities/object-review.entity';
+import { ObjectTariffFacilityEntity } from './entities/object-tariff-facility.entity';
 import { ObjectTariffEntity } from './entities/object-tariff.entity';
 import { ObjectEntity } from './entities/object.entity';
 import { TariffCategoryEntity } from './entities/tariff-category.entity';
@@ -16,4 +17,8 @@ export const objectsProviders = [
   { provide: 'OBJECTS_FACILITIES_REPOSITORY', useValue: ObjectFacilityEntity },
   { provide: 'OBJECTS_REVIEWS_REPOSITORY', useValue: ObjectReviewEntity },
   { provide: 'TARIFFS_CATEGORIES_REPOSITORY', useValue: TariffCategoryEntity },
+  {
+    provide: 'TARIFFS_FACILITIES_REPOSITORY',
+    useValue: ObjectTariffFacilityEntity,
+  },
 ];

@@ -1,4 +1,5 @@
 import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import { CityDto } from '../dto/city.dto';
 
 @Table({ tableName: 'cities' })
 export class CityEntity extends Model<CityEntity> {
@@ -13,4 +14,12 @@ export class CityEntity extends Model<CityEntity> {
     allowNull: false,
   })
   url: string;
+
+  toDto(): CityDto {
+    return {
+      id: this.id,
+      name: this.name,
+      url: this.url,
+    };
+  }
 }

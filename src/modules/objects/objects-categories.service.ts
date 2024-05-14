@@ -9,6 +9,10 @@ type ObjectCategory = {
   parentId: number;
 };
 
+type ObjectCategoryTreeItem = ObjectCategoryDto & {
+  children?: ObjectCategoryTreeItem[];
+};
+
 @Injectable()
 export class ObjectsCategoriesService {
   constructor(
@@ -16,19 +20,19 @@ export class ObjectsCategoriesService {
     private readonly categoriesRepository: typeof ObjectCategoryEntity,
   ) {}
 
-  async add(category: ObjectCategory): Promise<ObjectCategoryDto> {
+  async add(category: ObjectCategory): Promise<ObjectCategoryEntity> {
     const item = await this.categoriesRepository.create({
       name: category.name,
       url: category.url,
       parent_id: (category.parentId > 0 && category.parentId) || null,
     });
-    return item ? this.entityToDto(item) : null;
+    return item;
   }
 
   async update(
     id: number,
     category: Partial<ObjectCategory>,
-  ): Promise<ObjectCategoryDto | null> {
+  ): Promise<ObjectCategoryEntity | null> {
     const result = await this.categoriesRepository.update(
       {
         name: category.name,
@@ -46,7 +50,7 @@ export class ObjectsCategoriesService {
     return null;
   }
 
-  async findOneByUrl(url: string): Promise<ObjectCategoryDto | null> {
+  async findOneByUrl(url: string): Promise<ObjectCategoryEntity | null> {
     if (!url) {
       return null;
     }
@@ -54,10 +58,10 @@ export class ObjectsCategoriesService {
       where: { url },
     });
 
-    return item ? this.entityToDto(item) : null;
+    return item;
   }
 
-  async findOneById(id: number): Promise<ObjectCategoryDto | null> {
+  async findOneById(id: number): Promise<ObjectCategoryEntity | null> {
     if (!id) {
       return null;
     }
@@ -65,16 +69,16 @@ export class ObjectsCategoriesService {
       where: { id },
     });
 
-    return item ? this.entityToDto(item) : null;
+    return item;
   }
 
-  public async fetchAll(depth: number): Promise<ObjectCategoryDto[]> {
+  public async fetchAll(depth: number): Promise<ObjectCategoryTreeItem[]> {
     const parents = await this.categoriesRepository.findAll({
       where: { parent_id: { [Op.is]: null } },
     });
     depth = depth < 0 ? Number.MAX_SAFE_INTEGER : depth;
     const result: ObjectCategoryDto[] = parents.map((item) =>
-      this.entityToDto(item),
+      this.toTreeItem(item),
     );
     if (depth > 0) {
       const promises: Promise<any>[] = [];
@@ -91,7 +95,7 @@ export class ObjectsCategoriesService {
   public async fetchTree(
     parentCategoryId: number,
     depth: number,
-  ): Promise<ObjectCategoryDto> {
+  ): Promise<ObjectCategoryTreeItem> {
     depth = depth < 0 ? Number.MAX_SAFE_INTEGER : depth;
     const parent = await this.categoriesRepository.findOne({
       where: { id: parentCategoryId },
@@ -99,7 +103,7 @@ export class ObjectsCategoriesService {
     if (!parent) {
       return null;
     }
-    const root = this.entityToDto(parent);
+    const root = this.toTreeItem(parent);
     if (depth > 0) {
       await this.fetchTreeBranch(root, depth - 1);
     }
@@ -131,27 +135,16 @@ export class ObjectsCategoriesService {
     return result;
   }
 
-  private entityToDto(category: ObjectCategoryEntity): ObjectCategoryDto {
-    return {
-      id: category.id,
-      name: category.name,
-      url: category.url,
-      parentId: category.parent_id,
-      children: [],
-    };
-  }
-
   private async fetchTreeBranch(
-    category: ObjectCategoryDto,
+    category: ObjectCategoryTreeItem,
     depth: number,
-  ): Promise<ObjectCategoryDto> {
-    console.log(depth);
+  ): Promise<ObjectCategoryTreeItem> {
     const children = await this.categoriesRepository.findAll({
       where: {
         parent_id: category.id,
       },
     });
-    category.children.push(...children.map((item) => this.entityToDto(item)));
+    category.children.push(...children.map((item) => this.toTreeItem(item)));
     if (category.children.length && depth > 0) {
       const promises = [];
       for (let i = 0; i < category.children.length; i++) {
@@ -161,5 +154,15 @@ export class ObjectsCategoriesService {
     }
 
     return category;
+  }
+
+  toTreeItem(entity: ObjectCategoryEntity): ObjectCategoryTreeItem {
+    return {
+      id: entity.id,
+      name: entity.name,
+      url: entity.url,
+      parentId: entity.parent_id,
+      children: [],
+    };
   }
 }

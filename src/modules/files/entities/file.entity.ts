@@ -1,4 +1,5 @@
 import { Table, Column, Model, DataType, Default } from 'sequelize-typescript';
+import { FileDto } from '../dto/file.dto';
 
 @Table({ tableName: 'files' })
 export class FileEntity extends Model<FileEntity> {
@@ -27,17 +28,13 @@ export class FileEntity extends Model<FileEntity> {
   })
   size: number;
 
-  @Default(0)
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-  })
-  orderNo: number;
-
-  @Default(false)
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-  })
-  main: boolean;
+  toDto(): FileDto {
+    return {
+      id: this.id,
+      name: this.name,
+      uid: this.uid,
+      type: this.type,
+      size: this.size,
+    };
+  }
 }

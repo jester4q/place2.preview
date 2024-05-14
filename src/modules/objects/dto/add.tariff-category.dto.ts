@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class AddTariffCategoryDto {
   @ApiProperty()

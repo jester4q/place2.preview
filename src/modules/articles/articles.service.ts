@@ -4,7 +4,6 @@ import { ListingPage } from '../../core/page/types';
 import { listingPage } from '../../core/page/listing.page';
 import { FilesService } from '../files/files.service';
 import { ArticleEntity } from './entities/article.entity';
-import { ArticleDto } from './dto/article.dto';
 
 type Article = {
   title: string;
@@ -22,21 +21,18 @@ export class ArticlesService {
     private readonly fileService: FilesService,
   ) {}
 
-  async add(article: Article): Promise<ArticleDto> {
-    const item = await this.articlesRepository.create<ArticleEntity>({
+  async add(article: Article): Promise<ArticleEntity> {
+    const item = await this.articlesRepository.create({
       title: article.title,
       url: article.url,
       category_id: article.categoryId,
       reading_time: article.readingTime,
       text: article.text,
     });
-    return this.entityToDto(item);
+    return item;
   }
 
-  async update(
-    id: number,
-    article: Partial<Article>,
-  ): Promise<ArticleDto | null> {
+  async update(id: number, article: Partial<Article>): Promise<ArticleEntity> {
     const result = await this.articlesRepository.update<ArticleEntity>(
       {
         title: article.title,
@@ -58,7 +54,10 @@ export class ArticlesService {
     return null;
   }
 
-  async setImage(id: number, file: Express.Multer.File): Promise<ArticleDto> {
+  async setImage(
+    id: number,
+    file: Express.Multer.File,
+  ): Promise<ArticleEntity> {
     const article = await this.findOneById(id);
     if (!article) {
       return null;
@@ -68,10 +67,10 @@ export class ArticlesService {
       return null;
     }
 
-    if (article.imageId) {
-      await this.fileService.delete(article.imageId);
+    if (article.image_id) {
+      await this.fileService.delete(article.image_id);
     }
-    const result = await this.articlesRepository.update<ArticleEntity>(
+    const result = await this.articlesRepository.update(
       { image_id: image.id },
       {
         where: { id },
@@ -86,21 +85,21 @@ export class ArticlesService {
     return result > 0;
   }
 
-  async findOneByUrl(url: string): Promise<ArticleDto> {
+  async findOneByUrl(url: string): Promise<ArticleEntity> {
     const item = await this.articlesRepository.findOne<ArticleEntity>({
       where: { url },
     });
-    return (item && this.entityToDto(item)) || null;
+    return item;
   }
 
-  async findOneById(id: number): Promise<ArticleDto> {
+  async findOneById(id: number): Promise<ArticleEntity> {
     const item = await this.articlesRepository.findOne<ArticleEntity>({
       where: { id },
     });
-    return (item && this.entityToDto(item)) || null;
+    return item;
   }
 
-  async getAll(dto: GetAllArticlesDto): Promise<ListingPage<ArticleDto>> {
+  async getAll(dto: GetAllArticlesDto): Promise<ListingPage<ArticleEntity>> {
     const list = await this.articlesRepository.findAndCountAll({
       attributes: { exclude: ['created_at', 'updated_at'] },
       where: {
@@ -111,23 +110,11 @@ export class ArticlesService {
       limit: dto.perPage,
     });
 
-    return listingPage<ArticleDto>(
-      list.rows.map((e) => this.entityToDto(e)),
+    return listingPage<ArticleEntity>(
+      list.rows,
       dto.page,
       list.count,
       dto.perPage,
     );
-  }
-
-  private entityToDto(article: ArticleEntity): ArticleDto {
-    return {
-      id: article.id,
-      title: article.title,
-      url: article.url,
-      readingTime: article.reading_time || 0,
-      categoryId: article.category_id,
-      text: article.text || '',
-      imageId: article.image_id || 0,
-    };
   }
 }

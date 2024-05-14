@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { FileDto } from 'src/modules/files/dto/file.dto';
 import { FacilityDto } from './facility.dto';
 import { ObjectTariffDto } from './object-tariff.dto';
 import { ObjectReviewDto } from './object-review.dto';

@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNumber } from 'class-validator';
 
 export class AddObjectTariffDto {
   @ApiProperty()
@@ -9,4 +10,7 @@ export class AddObjectTariffDto {
   readonly text?: string;
   @ApiPropertyOptional()
   readonly price?: number;
+  @ApiPropertyOptional()
+  @IsNumber({}, { each: true })
+  readonly facilitiesIds?: number[];
 }

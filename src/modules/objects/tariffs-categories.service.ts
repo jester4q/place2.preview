@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Op } from 'sequelize';
 import { ObjectsCategoriesService } from './objects-categories.service';
 import { TariffCategoryEntity } from './entities/tariff-category.entity';
-import { TariffCategoryDto } from './dto/tariff-category.dto';
 
 type TariffCategory = {
   name: string;
@@ -17,44 +16,42 @@ export class TariffsCategoriesService {
     private readonly categoryService: ObjectsCategoriesService,
   ) {}
 
-  async getAll(categoryId: number): Promise<TariffCategoryDto[]> {
-    return (
-      await this.tariffCategoryRepository.findAll({
-        where: { category_id: categoryId },
-      })
-    ).map((item) => item.toDto());
+  async getAll(categoryId: number): Promise<TariffCategoryEntity[]> {
+    return this.tariffCategoryRepository.findAll({
+      where: { category_id: categoryId },
+    });
   }
 
-  async findOneById(id: number): Promise<TariffCategoryDto> {
+  async findOneById(id: number): Promise<TariffCategoryEntity> {
     const item = await this.tariffCategoryRepository.findOne({
       where: { id },
     });
-    return (item && item.toDto()) || null;
+    return item;
   }
 
-  async findOneByUrl(url: string): Promise<TariffCategoryDto> {
+  async findOneByUrl(url: string): Promise<TariffCategoryEntity> {
     const item = await this.tariffCategoryRepository.findOne({
       where: { url },
     });
-    return (item && item.toDto()) || null;
+    return item;
   }
 
   async add(
     categoryId: number,
     tariffCategory: TariffCategory,
-  ): Promise<TariffCategoryDto> {
+  ): Promise<TariffCategoryEntity> {
     const item = await this.tariffCategoryRepository.create({
       category_id: categoryId,
       name: tariffCategory.name,
       url: tariffCategory.url,
     });
-    return (item && item.toDto()) || null;
+    return item;
   }
 
   async update(
     id: number,
     tariffCategory: Partial<TariffCategory>,
-  ): Promise<TariffCategoryDto | null> {
+  ): Promise<TariffCategoryEntity | null> {
     const result = await this.tariffCategoryRepository.update(
       {
         name: tariffCategory.name,
@@ -80,11 +77,11 @@ export class TariffsCategoriesService {
     return result > 0;
   }
 
-  async findForCategory(categoryId: number): Promise<TariffCategoryDto[]> {
+  async findForCategory(categoryId: number): Promise<TariffCategoryEntity[]> {
     const path = await this.categoryService.getPath(categoryId);
     const categories = await this.tariffCategoryRepository.findAll({
       where: { category_id: { [Op.in]: path } },
     });
-    return categories.map((item) => item.toDto());
+    return categories;
   }
 }

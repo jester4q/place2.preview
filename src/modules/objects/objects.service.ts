@@ -1,6 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ObjectEntity } from './entities/object.entity';
-import { ObjectDto } from './dto/object.dto';
 import { FilesService } from '../files/files.service';
 import { GetAllObjectsDto } from './dto/get-all-objects.dto';
 import { ListingPage } from 'src/core/page/types';
@@ -46,7 +45,7 @@ export class ObjectsService {
     private readonly fileService: FilesService,
   ) {}
 
-  async add(object: TheObject): Promise<ObjectDto> {
+  async add(object: TheObject): Promise<ObjectEntity> {
     const payload = {
       url: object.url,
       name: object.name,
@@ -67,15 +66,14 @@ export class ObjectsService {
       total_reviews: 0,
       rating: 0,
     };
-    console.log('object', object, payload);
     const item = await this.objectsRepository.create(payload);
-    return item.toDto();
+    return item;
   }
 
   async update(
     id: number,
     object: Partial<TheObject>,
-  ): Promise<ObjectDto | null> {
+  ): Promise<ObjectEntity | null> {
     const result = await this.objectsRepository.update(
       {
         name: object.name,
@@ -110,7 +108,7 @@ export class ObjectsService {
   async setLogo(
     id: number,
     file: Express.Multer.File,
-  ): Promise<ObjectDto | null> {
+  ): Promise<ObjectEntity | null> {
     const object = await this.findOneById(id);
     if (!object) {
       return null;
@@ -120,8 +118,8 @@ export class ObjectsService {
       return null;
     }
 
-    if (object.logoId) {
-      await this.fileService.delete(object.logoId);
+    if (object.logo_id) {
+      await this.fileService.delete(object.logo_id);
     }
     const result = await this.objectsRepository.update(
       { logo_id: image.id },
@@ -138,7 +136,7 @@ export class ObjectsService {
     file: Express.Multer.File,
     main?: boolean,
     orderNo?: number,
-  ): Promise<ObjectDto | null> {
+  ): Promise<ObjectEntity | null> {
     const object = await this.findOneById(id);
     if (!object) {
       return null;
@@ -148,7 +146,7 @@ export class ObjectsService {
       return null;
     }
 
-    const result = await this.objectsImagesRepository.create({
+    await this.objectsImagesRepository.create({
       object_id: id,
       image_id: image.id,
       main: !!main,
@@ -158,12 +156,12 @@ export class ObjectsService {
     return this.findOneById(id);
   }
 
-  async deleteImage(id: number, imageId: number): Promise<ObjectDto | null> {
+  async deleteImage(id: number, imageId: number): Promise<ObjectEntity | null> {
     const object = await this.findOneById(id);
     if (!object) {
       return null;
     }
-    if (!object.images.includes(imageId)) {
+    if (!object.images.map((item) => item.id).includes(imageId)) {
       return null;
     }
 
@@ -179,7 +177,7 @@ export class ObjectsService {
     return result > 0;
   }
 
-  async findOneByUrl(url: string): Promise<ObjectDto> {
+  async findOneByUrl(url: string): Promise<ObjectEntity> {
     const item = await this.objectsRepository.findOne({
       where: { url },
       include: [
@@ -201,10 +199,10 @@ export class ObjectsService {
         },
       ],
     });
-    return (item && item.toDto()) || null;
+    return item;
   }
 
-  async findOneById(id: number): Promise<ObjectDto> {
+  async findOneById(id: number): Promise<ObjectEntity> {
     const item = await this.objectsRepository.findOne({
       where: { id },
       include: [
@@ -226,10 +224,10 @@ export class ObjectsService {
         },
       ],
     });
-    return (item && item.toDto()) || null;
+    return item;
   }
 
-  async getAll(dto: GetAllObjectsDto): Promise<ListingPage<ObjectDto>> {
+  async getAll(dto: GetAllObjectsDto): Promise<ListingPage<ObjectEntity>> {
     const list = await this.objectsRepository.findAndCountAll({
       include: {
         model: ObjectImageEntity,
@@ -248,8 +246,8 @@ export class ObjectsService {
       limit: dto.perPage,
     });
 
-    return listingPage<ObjectDto>(
-      list.rows.map((entity) => entity.toDto()),
+    return listingPage<ObjectEntity>(
+      list.rows,
       dto.page,
       list.count,
       dto.perPage,
